@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.example.stores.databinding.ActivityMainBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.toast
 import org.jetbrains.anko.uiThread
 
 class MainActivity : AppCompatActivity(), OnClickListener, MainAux {
@@ -28,7 +29,7 @@ class MainActivity : AppCompatActivity(), OnClickListener, MainAux {
 
     private fun setupRecyclerView() {
         mAdapter = StoreAdapter(mutableListOf(), this)
-        mGridLayoutManager = GridLayoutManager(this, 2)
+        mGridLayoutManager = GridLayoutManager(this, resources.getInteger(R.integer.main_columns))
         getStores()
         mBinding.recyclerView.apply {
             setHasFixedSize(true)
@@ -63,7 +64,7 @@ class MainActivity : AppCompatActivity(), OnClickListener, MainAux {
     }
 
     override fun onDeleteStore(storeEntity: StoreEntity) {
-        val items = arrayOf("Eliminar", "LLamar", "Visitar sitio web")
+        val items = resources.getStringArray(R.array.array_options_item)
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_options_title)
             .setItems(items) { _, i ->
@@ -76,25 +77,26 @@ class MainActivity : AppCompatActivity(), OnClickListener, MainAux {
     }
 
     private fun dial(phone: String) {
-        val callIntent = Intent().apply {
-            action = Intent.ACTION_DIAL
-            data = Uri.parse("tel:$phone")
-        }
-        startActivity(callIntent)
+        startIntent(Intent.ACTION_DIAL, "tel:$phone")
     }
 
     private fun goToWebSite(webSite: String){
         if(webSite.isEmpty())
-        {
             Toast.makeText(this, R.string.main_error_no_website, Toast.LENGTH_LONG).show()
+        else
+            startIntent(Intent.ACTION_VIEW, webSite)
+    }
+
+    private fun startIntent(mAction: String, uriParse: String){
+        val intent = Intent().apply {
+            action = mAction
+            data = Uri.parse(uriParse)
         }
-        else {
-            val webSiteIntent = Intent().apply {
-                action = Intent.ACTION_VIEW
-                data = Uri.parse(webSite)
-            }
-            startActivity(webSiteIntent)
-        }
+
+        if(intent.resolveActivity(packageManager) != null)
+            startActivity(intent)
+        else
+            Toast.makeText(this, R.string.main_error_no_resolve, Toast.LENGTH_LONG).show()
     }
 
     private fun confirmDelete(storeEntity: StoreEntity){
