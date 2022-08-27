@@ -1,10 +1,13 @@
 package com.example.stores
 
+import android.content.Intent
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.fragment.app.FragmentManager
+import android.widget.Toast
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.stores.databinding.ActivityMainBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
@@ -60,12 +63,53 @@ class MainActivity : AppCompatActivity(), OnClickListener, MainAux {
     }
 
     override fun onDeleteStore(storeEntity: StoreEntity) {
-        doAsync {
-            StoreApplication.dataBase.storeDao().deleteStore(storeEntity)
-            uiThread {
-                mAdapter.delete(storeEntity)
-            }
+        val items = arrayOf("Eliminar", "LLamar", "Visitar sitio web")
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.dialog_options_title)
+            .setItems(items) { _, i ->
+                when (i) {
+                    0 -> confirmDelete(storeEntity)
+                    1 -> dial(storeEntity.phone)
+                    2 -> goToWebSite(storeEntity.webSite)
+                }
+            }.show()
+    }
+
+    private fun dial(phone: String) {
+        val callIntent = Intent().apply {
+            action = Intent.ACTION_DIAL
+            data = Uri.parse("tel:$phone")
         }
+        startActivity(callIntent)
+    }
+
+    private fun goToWebSite(webSite: String){
+        if(webSite.isEmpty())
+        {
+            Toast.makeText(this, R.string.main_error_no_website, Toast.LENGTH_LONG).show()
+        }
+        else {
+            val webSiteIntent = Intent().apply {
+                action = Intent.ACTION_VIEW
+                data = Uri.parse(webSite)
+            }
+            startActivity(webSiteIntent)
+        }
+    }
+
+    private fun confirmDelete(storeEntity: StoreEntity){
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.dialog_delete_title)
+            .setPositiveButton(R.string.dialog_delte_confirm) { _, _ ->
+                doAsync {
+                    StoreApplication.dataBase.storeDao().deleteStore(storeEntity)
+                    uiThread {
+                        mAdapter.delete(storeEntity)
+                    }
+                }
+            }
+            .setNegativeButton(R.string.dialog_delete_cancel, null)
+            .show()
     }
 
     private fun launchEditFragment(args: Bundle? = null){

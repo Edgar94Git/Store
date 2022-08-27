@@ -13,6 +13,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.stores.databinding.FragmentEditStoreBinding
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputLayout
 import org.jetbrains.anko.Android
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
@@ -45,19 +46,36 @@ class EditStoreFragment : Fragment() {
             mIsEditMode = false
             mStoreEntity = StoreEntity(name = "", phone = "", photoUrl = "")
         }
+        setupActionBar()
+        setHasOptionsMenu(true)
+        setupTextFields()
+    }
+
+    private fun setupActionBar() {
         mActivity = activity as? MainActivity
         mActivity?.supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        mActivity?.supportActionBar?.title = getString(R.string.edit_store_title_add)
+        mActivity?.supportActionBar?.title = if(mIsEditMode) getString(R.string.edit_store_title_edit)
+                                             else getString(R.string.edit_store_title_add)
+    }
 
-        setHasOptionsMenu(true)
-
-        mBinding.etPhotoUrl.addTextChangedListener {
-            Glide.with(this)
-                .load(mBinding.etPhotoUrl.text.toString())
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .centerCrop()
-                .into(mBinding.imgPhoto)
+    private fun setupTextFields() {
+        with(mBinding)
+        {
+            etPhone.addTextChangedListener { validationFields(tilPhone) }
+            etName.addTextChangedListener { validationFields(tilName) }
+            etPhotoUrl.addTextChangedListener {
+                validationFields(tilPhotoUrl)
+                loadImage(it.toString().trim())
+            }
         }
+    }
+
+    private fun loadImage(url: String){
+        Glide.with(this)
+            .load(url)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .centerCrop()
+            .into(mBinding.imgPhoto)
     }
 
     private fun getStore(id: Long) {
@@ -93,7 +111,7 @@ class EditStoreFragment : Fragment() {
                 true
             }
             R.id.action_save ->{
-                if(mStoreEntity != null)
+                if(mStoreEntity != null && validationFields(mBinding.tilPhotoUrl, mBinding.tilPhone, mBinding.tilName))
                 {
                     /*val store = StoreEntity(
     name = mBinding.etName.text.toString().trim(),
@@ -139,6 +157,58 @@ class EditStoreFragment : Fragment() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun validationFields(vararg textFields: TextInputLayout): Boolean {
+        var isValid: Boolean = true
+
+        for (textField in textFields)
+        {
+            if(textField.editText?.text.toString().trim().isEmpty())
+            {
+                textField.error = getString(R.string.helper_required)
+                isValid = false
+            }
+            else textField.error = null
+        }
+
+        if(!isValid)
+        {
+            Snackbar.make(
+                mBinding.root,
+                getString(R.string.edit_store_message_valid),
+                Snackbar.LENGTH_SHORT
+            ).show()
+        }
+
+        return isValid
+    }
+
+    private fun validationFields(): Boolean {
+        var isValid: Boolean = true
+
+        if(mBinding.etPhotoUrl.text.toString().trim().isEmpty())
+        {
+            mBinding.tilPhotoUrl.error = getString(R.string.helper_required)
+            mBinding.etPhotoUrl.requestFocus()
+            isValid = false
+        }
+
+        if(mBinding.etPhone.text.toString().trim().isEmpty())
+        {
+            mBinding.tilPhone.error = getString(R.string.helper_required)
+            mBinding.etPhone.requestFocus()
+            isValid = false
+        }
+
+        if(mBinding.etName.text.toString().trim().isEmpty())
+        {
+            mBinding.tilName.error = getString(R.string.helper_required)
+            mBinding.etName.requestFocus()
+            isValid = false
+        }
+
+        return isValid
     }
 
     override fun onDestroy() {
