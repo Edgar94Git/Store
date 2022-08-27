@@ -2,12 +2,13 @@ package com.example.stores
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.stores.databinding.ActivityMainBinding
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
-class MainActivity : AppCompatActivity(), OnClickListener {
+class MainActivity : AppCompatActivity(), OnClickListener, MainAux {
 
     private lateinit var mBinding: ActivityMainBinding
     private lateinit var mGridLayoutManager: GridLayoutManager
@@ -18,14 +19,7 @@ class MainActivity : AppCompatActivity(), OnClickListener {
         mBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(mBinding.root)
 
-        mBinding.btnSave.setOnClickListener {
-            val store = StoreEntity( name = mBinding.etNombre.text.toString().trim())
-            Thread{
-                StoreApplication.dataBase.storeDao().addStore(store)
-            }.start()
-            mAdapter.add(store)
-        }
-
+        mBinding.fab.setOnClickListener { launchEditFragment() }
         setupRecyclerView()
     }
 
@@ -49,8 +43,10 @@ class MainActivity : AppCompatActivity(), OnClickListener {
         }
     }
 
-    override fun onClick(storeEntity: StoreEntity) {
-
+    override fun onClick(storeId: Long) {
+        val args = Bundle()
+        args.putLong(getString(R.string.arg_id), storeId)
+        launchEditFragment(args)
     }
 
     override fun onFavoriteStore(storeEntity: StoreEntity) {
@@ -70,5 +66,34 @@ class MainActivity : AppCompatActivity(), OnClickListener {
                 mAdapter.delete(storeEntity)
             }
         }
+    }
+
+    private fun launchEditFragment(args: Bundle? = null){
+        val fragment = EditStoreFragment()
+        if(args != null) fragment.arguments = args
+        val fragmentManager = supportFragmentManager
+        val fragmentTransition = fragmentManager.beginTransaction()
+        fragmentTransition.add(R.id.containerMain, fragment)
+        fragmentTransition.addToBackStack(null)
+        fragmentTransition.commit()
+        hideFabe()
+    }
+
+    /*
+    * MainAux
+    */
+    override fun hideFabe(isVisible: Boolean) {
+        if(isVisible)
+            mBinding.fab.show()
+        else
+            mBinding.fab.hide()
+    }
+
+    override fun addStore(storeEntity: StoreEntity) {
+        mAdapter.add(storeEntity)
+    }
+
+    override fun updateStore(storeEntity: StoreEntity) {
+        mAdapter.update(storeEntity)
     }
 }
